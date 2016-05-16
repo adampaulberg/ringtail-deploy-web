@@ -35,6 +35,8 @@ app.get('/config', function(req, res) {
     .send('window.appConfig = ' + JSON.stringify(config.client));
 });
 
+app.get('/api/alive', function(req, res){ return res.send(200); });
+
 // API - REGION ROUTES
 app.get   ('/api/regions', controllers.regions.list);
 app.get   ('/api/regions/:regionId', controllers.regions.get);
