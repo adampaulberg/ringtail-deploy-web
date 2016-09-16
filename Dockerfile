@@ -14,7 +14,7 @@ fi
 ENV http_proxy=$PROXY_URL
 ENV https_proxy=$PROXY_URL
 ENV NVM_NODEJS_ORG_MIRROR=http://nodejs.org/dist
-ENV NODE_VERSION=5.11.1
+ENV NODE_VERSION=6.5.0
 ENV NVM_DIR=/root/.nvm
 
 #CREATE DIRS
@@ -29,7 +29,8 @@ RUN apt-get install -y \
 	build-essential \
 	nano \
 	python2.7 \
-	python
+	python \
+	openjdk-7-jdk
 
 ENV PYTHON=/usr/bin/python2.7
 
@@ -62,7 +63,7 @@ RUN npm install bower -g
 
 #GET CODE
 WORKDIR /home/deployweb
-RUN git clone https://github.com/fti-technology/ringtail-deploy-web.git
+RUN git clone -b dockering https://github.com/adampaulberg/ringtail-deploy-web.git
 WORKDIR ringtail-deploy-web
 RUN mkdir data
 
@@ -84,8 +85,7 @@ RUN bower install --allow-root
 
 #DON'T RUN MIGRATE UNTIL DOCKER RUN AND VOLUME MOUNTED
 RUN touch start.sh && chmod +x start.sh
-RUN echo "$(npm bin)/migrate up --state-file data/.migrate" >> start.sh
-RUN echo "DEBUG=deployer* npm start" >> start.sh
+RUN echo "DEBUG=deployer* npm run start" >> start.sh
 
 #EXPOSE PORTS
 EXPOSE 8080
