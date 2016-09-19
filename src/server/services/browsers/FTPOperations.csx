@@ -1,20 +1,20 @@
-﻿// Overview of edge.js: http://tjanczuk.github.com/edge
+﻿
+// Overview of edge.js: http://tjanczuk.github.com/edge
 //
-// Use C# FTP WebRequest and FtpWebRequest to utilze Proxy and NTLM
+// Use C# to invoke Java jar file that exposes FTP functionality ( supports Proxy and NTLM FTP )
 //
 
 //#r "System.Core.dll"
 //#r "System.Web.Extensions.dll"
 //#r "System.Xml.dll"
-//#r "HtmlAgilityPack.dll"
 
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
-using HtmlAgilityPack;
 using System.Diagnostics;
 
 // Required for edge to invoke the C# from Nodejs
@@ -27,6 +27,7 @@ public class Startup
     /// <returns></returns>
     public async Task<object> Invoke(dynamic input)
     {
+        Debugger.Launch();
         var typeOfOperation = (string)input.action;
         if (string.IsNullOrEmpty(typeOfOperation))
         {
@@ -34,7 +35,7 @@ public class Startup
         }
         else
         {
-            if(typeOfOperation == "VALIDATE")
+            if (typeOfOperation == "VALIDATE")
             {
                 return this.GetValidateFiles(input);
             }
@@ -47,11 +48,13 @@ public class Startup
     {
         return Helper.GetRemoteBranches(input);
     }
+
     string GetRemoteFiles(dynamic input)
     {
         return Helper.GetValidateLocation(input);
         //return Helper.GetRemoteFiles(input);
     }
+
     string GetValidateFiles(dynamic input)
     {
         return Helper.GetValidateLocation(input);
@@ -65,11 +68,14 @@ public class Options
     public string FtpUser { get; set; }
     public string FtpPassword { get; set; }
     public string FtpProxyPort { get; set; }
+    public string FtpProxyUser { get; set; }
+    public string FtpProxyPassword { get; set; }
     public string FtpProxyHost { get; set; }
     public string Branch { get; set; }
     public string CurrentVersion { get; set; }
+    public string ScriptLocation { get; set; }
 
-    public Options(string ftpHost, string ftpUser, string ftpPassword, string ftpProxyHost, string ftpProxyPort, string branch, string currentVersion)
+    public Options(string ftpHost, string ftpUser, string ftpPassword, string ftpProxyHost, string ftpProxyPort, string branch, string currentVersion, string scriptLocation, string ftpProxyUser = null, string ftpProxyPassword = null)
     {
         FtpHost = ftpHost;
         FtpUser = ftpUser;
@@ -78,7 +84,108 @@ public class Options
         FtpProxyPort = ftpProxyPort;
         Branch = branch;
         CurrentVersion = currentVersion;
+        FtpProxyUser = ftpProxyUser;
+        FtpProxyPassword = ftpProxyPassword;
+        ScriptLocation = scriptLocation;
     }
+}
+
+public static class FTPRunner
+{
+    private const string process = "java";
+    private const string jarFile = "FtpOperations-v0.1.jar";
+
+
+    public class RunResults
+    {
+        public int ExitCode;
+        public Exception RunException;
+        public StringBuilder Output;
+        public StringBuilder Error;
+    }
+
+
+    public static RunResults Run(string ftpRequestMethod, Options options, string localFilePath = null)
+    {
+
+        RunResults runResults = new RunResults
+        {
+            Output = new StringBuilder(),
+            Error = new StringBuilder(),
+            RunException = null
+        };
+
+        try
+        {
+            using (Process proc = new Process())
+            {
+                var baseArgs = "-jar " + System.IO.Path.Combine(options.ScriptLocation, jarFile);
+                string baseUrlArgs = string.Format("-url {0} -r \"{1}\" ", options.FtpHost, options.Branch);
+                if (!string.IsNullOrEmpty(options.FtpUser) && !string.IsNullOrEmpty(options.FtpUser))
+                {
+                    baseUrlArgs += string.Format("-un {0} -pw {1} ", options.FtpUser, options.FtpPassword);
+                }
+
+                if (!string.IsNullOrEmpty(options.FtpProxyHost))
+                {
+                    baseUrlArgs += string.Format("-ph {0} ", options.FtpProxyHost);
+                }
+
+                if (!string.IsNullOrEmpty(options.FtpProxyPort))
+                {
+                    baseUrlArgs += string.Format("-pp {0} ", options.FtpProxyPort);
+                }
+
+                if (!string.IsNullOrEmpty(options.FtpProxyUser) && !string.IsNullOrEmpty(options.FtpProxyPassword))
+                {
+                    baseUrlArgs += string.Format("-pu {0} -pup {1} ", options.FtpProxyPort, options.FtpProxyPassword);
+                }
+
+                string args = null;
+                proc.StartInfo.FileName = process;
+                if (ftpRequestMethod == WebRequestMethods.Ftp.ListDirectory)
+                {
+                    args = string.Format("{0} -l {1}", baseArgs, baseUrlArgs);
+                }
+                else if (ftpRequestMethod == WebRequestMethods.Ftp.ListDirectoryDetails)
+                {
+                    args = string.Format("{0} -ld {1}", baseArgs, baseUrlArgs);
+                }
+                else if (ftpRequestMethod == WebRequestMethods.Ftp.DownloadFile)
+                {
+                    args = string.Format("{0} -sf \"{1}\" {2}", baseArgs, localFilePath, baseUrlArgs);
+                }
+                proc.StartInfo.Arguments = args;
+                proc.StartInfo.WorkingDirectory = Directory.GetCurrentDirectory();
+                proc.StartInfo.UseShellExecute = false;
+                proc.StartInfo.CreateNoWindow = true;
+                proc.StartInfo.RedirectStandardOutput = true;
+                proc.StartInfo.RedirectStandardError = true;
+
+                proc.OutputDataReceived += (o, e) => runResults.Output.Append(e.Data).Append(Environment.NewLine);
+                proc.ErrorDataReceived += (o, e) => runResults.Error.Append(e.Data).Append(Environment.NewLine);
+
+                proc.Start();
+
+                proc.BeginOutputReadLine();
+                proc.BeginErrorReadLine();
+
+                proc.WaitForExit();
+
+                runResults.ExitCode = proc.ExitCode;
+
+            }
+
+        }
+        catch (Exception e)
+        {
+
+            runResults.RunException = e;
+        }
+
+        return runResults;
+    }
+
 }
 
 public static class Helper
@@ -86,29 +193,24 @@ public static class Helper
 
     public static string GetRemoteBranches(dynamic input)
     {
-        var remoteList = GetRemoteList(input, WebRequestMethods.Ftp.ListDirectory);
-        var jsonSerialiser = new JavaScriptSerializer();
-        return jsonSerialiser.Serialize(remoteList);
+        return GetRemoteList(input, WebRequestMethods.Ftp.ListDirectory);
     }
 
     public static string GetRemoteFiles(dynamic input)
     {
-        List<string> remoteList = GetRemoteList(input, WebRequestMethods.Ftp.ListDirectoryDetails);
-        //remoteList.RemoveAll(item => !item.Contains(".exe"));
-        var jsonSerialiser = new JavaScriptSerializer();
-        return jsonSerialiser.Serialize(remoteList);
+        return GetRemoteList(input, WebRequestMethods.Ftp.ListDirectory);
     }
 
     public static string GetValidateLocation(dynamic input)
     {
         try
         {
-            List<string> remoteList = ValidateRemoteLocation(input, WebRequestMethods.Ftp.ListDirectoryDetails);
+            List<string> remoteList = ValidateRemoteLocation(input);
             var jsonSerialiser = new JavaScriptSerializer();
             var result = jsonSerialiser.Serialize(remoteList);
             return result;
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
         }
@@ -119,127 +221,120 @@ public static class Helper
 
     private static Options GenerateOptionsFromDynamic(dynamic input)
     {
+
+        string proxy = (string)input.ftpProxyHost;
+        string proxyport = (string)input.ftpProxyPort;
+        try
+        {
+            if (!String.IsNullOrEmpty(proxy) && proxy.Contains(":"))
+            {
+                string tempProxy = proxy;
+                if (!proxy.StartsWith("http://"))
+                {
+                    tempProxy = string.Format("http://{0}", proxy);
+                }
+                Uri baseUri = new Uri(tempProxy);
+                proxy = proxy.Replace(":" + baseUri.Port, "");
+
+                if (String.IsNullOrEmpty(proxyport))
+                {
+                    proxyport = baseUri.Port.ToString();
+                }
+            }
+        }
+        catch (System.Exception) { }
+
         Options options = new Options((string)input.ftpHost, (string)input.ftpUser, (string)input.ftpPassword,
-            (string)input.ftpProxyHost, (string)input.ftpProxyPort, (string)input.branch, (string) input.currentVersion);
-
-        //Options options = new Options((string)input.FtpHost, (string)input.FtpUser, (string)input.FtpPassword,
-        //    (string)input.FtpProxyHost, (string)input.FtpProxyPort, (string)input.Branch, (string)input.CurrentVersion);
-
+            proxy, proxyport, (string)input.branch, (string)input.currentVersion, (string)input.scriptLocation);
+        FtpOptionsCleanup(options);
         return options;
     }
 
-    private static List<string> GetRemoteList(dynamic input, string ftpRequestMethod)
+    private static string GetRemoteList(dynamic input, string ftpRequestMethod)
     {
         try
         {
             Options options = GenerateOptionsFromDynamic(input);
-            var request = FtpConnectionRequest(options);
-            var proxyHost = String.Empty;
-
-            try
-            {
-                proxyHost = options.FtpProxyHost;
-            }
-            catch(Exception ex)
-            {
-                Console.WriteLine(ex);       
-            }
-
-            var isProxy = !string.IsNullOrEmpty(proxyHost);
-
-            if (request != null)
-                return GetRemoteListingJson(request, ftpRequestMethod, isProxy);
+            return GetRemoteListingJson(ftpRequestMethod, options);
         }
         catch (Exception ex)
         {
             Console.WriteLine(ex);
         }
 
-        return new List<string>();
+        return string.Empty;
     }
 
-    private static List<string> ValidateRemoteLocation(dynamic input, string ftpRequestMethod)
+    private static List<string> ValidateRemoteLocation(dynamic input)
     {
         var result = new List<string>();
         bool okOverall = false;
 
         try
         {
-            Options options = GenerateOptionsFromDynamic(input);
-            var request = FtpConnectionRequest(options);
+            var ret = GetRemoteList(input, WebRequestMethods.Ftp.ListDirectoryDetails);
+            var jsonSerialiser = new JavaScriptSerializer();
+            result = jsonSerialiser.Deserialize<List<string>>(ret);
 
-            if (request != null)
+            try
             {
-                result = GetDetailedRemoteListing(request, ftpRequestMethod);
-                try
+                if (result != null)
                 {
-                    if (result != null)
-                    {
-                        options.Branch = options.Branch + @"/Manifest.txt";
-                        try
-                        {
-                            request = FtpConnectionRequest(options);
-                            if (request != null)
-                            {
-                                var tmpResult = new List<string>();
-                                okOverall = VerifyManifest(request, result, options, out tmpResult);
-                                result = tmpResult;
-                            }
-
-                        }
-                        catch(Exception ex)
-                        {
-                            Console.WriteLine(ex.ToString());
-                            result = new List<string>();
-                            result.Add("There is no manifest file in this location.");
-                            okOverall = false;
-                        }
-                    }
-                 }
-                catch(Exception ex)
-                {
-                    result = new List<string>();
-                    result.Add("Bad");
-                    okOverall = false;
-                    Console.WriteLine(ex);
+                    var tmpResult = new List<string>();
+                    Options options = GenerateOptionsFromDynamic(input);
+                    options.Branch = options.Branch + @"/Manifest.txt";
+                    okOverall = VerifyManifest(result, options, out tmpResult);
+                    result = tmpResult;
                 }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                result = new List<string>();
+                result.Add("There is no manifest file in this location.");
+                okOverall = false;
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.Message);
+            result = new List<string>();
+            result.Add("Bad");
+            okOverall = false;
+            Console.WriteLine(ex);
         }
 
-        if(okOverall)
+        if (okOverall)
         {
             result = new List<string>();
             result.Add("OK");
         }
+
+
         return result;
     }
 
-    private static bool AllowBranchVersion(string current, string manifest) 
+    private static bool AllowBranchVersion(string current, string manifest)
     {
         var cArray = current.Split('.');
         var mArray = manifest.Split('.');
 
         //mismatch, allow it
-        if(cArray.Length != mArray.Length) 
+        if (cArray.Length != mArray.Length)
         {
             return true;
         }
 
-        for(var i = 0; i < cArray.Length; i++ )
+        for (var i = 0; i < cArray.Length; i++)
         {
             var intCurrentVal = Int32.Parse(cArray[i]);
             var intManifestVal = Int32.Parse(mArray[i]);
 
-            if(intCurrentVal == intManifestVal) 
+            if (intCurrentVal == intManifestVal)
             {
                 continue;
             }
 
-            else if(intCurrentVal > intManifestVal) 
+            else if (intCurrentVal > intManifestVal)
             {
                 return false;
             }
@@ -251,10 +346,11 @@ public static class Helper
         return true;
     }
 
-    private static bool VerifyManifest(FtpWebRequest request, List<string> listing, Options options, out List<string> validationResult)
+    private static bool VerifyManifest(List<string> listing, Options options, out List<string> validationResult)
     {
         var okOverall = true;
-        var manifestContents = GetManifestFileContents(request);
+
+        var manifestContents = GetManifestFileContents(options);
         validationResult = new List<string>();
 
         foreach (var x in manifestContents)
@@ -263,15 +359,15 @@ public static class Helper
             {
                 continue;
             }
-            
+
             bool ringtailVersionOk = true;
-            if(options.CurrentVersion != null && options.CurrentVersion != "0.0.0.0")
+            if (options.CurrentVersion != null && options.CurrentVersion != "0.0.0.0")
             {
-                if(x.FileName.IndexOf("Ringtail_Main Ringtail8") >= 0)
+                if (x.FileName.IndexOf("Ringtail_Main Ringtail8") >= 0)
                 {
                     var allowIt = AllowBranchVersion(options.CurrentVersion, x.Version);
-                    if(!allowIt) 
-                    { 
+                    if (!allowIt)
+                    {
                         validationResult.Add("This is an earlier version than what is already installed.");
                         ringtailVersionOk = false;
                     }
@@ -293,9 +389,9 @@ public static class Helper
                     else
                     {
                         var item = "The file size is incorrect for " + x.FileName;
-                        if(item.Length > 75) 
+                        if (item.Length > 75)
                         {
-                            item = item.Substring(0, 75)+ " ...";
+                            item = item.Substring(0, 75) + " ...";
                         }
                         validationResult.Add(item);
                     }
@@ -305,7 +401,7 @@ public static class Helper
             if (!fileExists)
             {
                 var item = "The location is missing " + x.FileName;
-                if(item.Length > 75) 
+                if (item.Length > 75)
                 {
                     item = item.Substring(0, 75) + " ...";
                 }
@@ -317,7 +413,7 @@ public static class Helper
         return okOverall;
     }
 
-    public static FtpWebRequest FtpConnectionRequest(Options options)
+    public static void FtpOptionsCleanup(Options options)
     {
         var ftpUrl = string.Empty;
 
@@ -331,28 +427,6 @@ public static class Helper
         }
         //Clean up the URL
         ftpUrl = ValidateAndFixFtp(ftpUrl);
-
-
-        Uri uri = new Uri(ftpUrl, UriKind.Absolute);
-        var request = (FtpWebRequest)WebRequest.Create(uri);
-        request.Credentials = new NetworkCredential(options.FtpUser, options.FtpPassword);
-        string proxy = null;
-        // setup proxy details 
-        if (!string.IsNullOrEmpty(options.FtpProxyHost))
-        {
-            if (!string.IsNullOrEmpty(options.FtpProxyPort))
-            {
-                proxy = options.FtpProxyHost.TrimEnd('/', ':');
-                proxy = proxy + ":" + options.FtpProxyPort;
-            }
-            else
-            {
-                proxy = options.FtpProxyHost;
-            }
-
-            request.Proxy = new WebProxy(proxy);
-        }
-        return request;
     }
 
 
@@ -364,140 +438,23 @@ public static class Helper
     /// <param name="ftpRequestMethod"></param>
     /// <param name="isProxy"></param>
     /// <returns></returns>
-    private static List<string> GetRemoteListingJson(WebRequest ftpRequest, string ftpRequestMethod, bool isProxy)
+    private static string GetRemoteListingJson(string ftpRequestMethod, Options options)
     {
-        List<string> ftpListing = new List<string>();
-        string htmlResult = String.Empty;
-        ftpRequest.Method = ftpRequestMethod;
-        FtpWebResponse response = (FtpWebResponse)ftpRequest.GetResponse();
-
-        using (Stream responsestream = response.GetResponseStream())
-        {
-            using (StreamReader reader = new StreamReader(responsestream))
-            {
-                string _line = reader.ReadLine();
-                while (!string.IsNullOrEmpty(_line))
-                {
-                    if (isProxy)
-                    {
-                        htmlResult += _line;
-                    }
-                    else
-                    {
-                        var slashIndex = _line.IndexOf("/");
-                        if (slashIndex >= 0)
-                        {
-                            _line = _line.Substring(slashIndex + 1, _line.Length - (slashIndex + 1));
-                        }
-
-                    }
-
-                    if (String.CompareOrdinal("Parent Directory", _line) != 0)
-                        ftpListing.Add(_line);
-                    _line = reader.ReadLine();
-                }
-            }
-        }
-
-        if (isProxy)
-        {
-            try
-            {
-                //parse html output via proxy
-                HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
-
-                doc.LoadHtml(htmlResult);
-                ftpListing.Clear();
-                foreach (HtmlAgilityPack.HtmlNode node in doc.DocumentNode.SelectNodes("//a[@href]"))
-                {
-                    if (String.CompareOrdinal("Parent Directory", node.InnerText) != 0)
-                        ftpListing.Add(node.InnerText);
-                }
-
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-            }
-        }
-
-        return ftpListing;
+        var ret = FTPRunner.Run(ftpRequestMethod, options);
+        return ret.Output.ToString();
     }
 
-
-    /// <summary>
-    /// Handle the FtpWebResponse and try to parse the HTML output in the event that a proxy returns
-    /// HTML versus content.
-    /// </summary>
-    /// <param name="ftpRequest"></param>
-    /// <param name="ftpRequestMethod"></param>
-    /// <returns></returns>
-    private static List<string> GetDetailedRemoteListing(WebRequest ftpRequest, string ftpRequestMethod)
+    public static List<FileItem> GetManifestFileContents(Options options)
     {
-        List<string> ftpListing = new List<string>();
-        string htmlResult = String.Empty;
-        ftpRequest.Method = ftpRequestMethod;
-        FtpWebResponse response = (FtpWebResponse)ftpRequest.GetResponse();
-        using (Stream responsestream = response.GetResponseStream())
-        {
-            using (StreamReader reader = new StreamReader(responsestream))
-            {
-                string _line = reader.ReadLine();
-                while (!string.IsNullOrEmpty(_line))
-                {
-                    htmlResult += _line;
-                    if (String.CompareOrdinal("Parent Directory", _line) != 0)
-                        ftpListing.Add(_line);
-                    _line = reader.ReadLine();
-                }
-            }
-        }
-
-        ftpListing = ParseFTPResult(ftpListing);
-
-        return ftpListing;
-    }
-
-    private static List<string> ParseFTPResult(List<string> ftpListing)
-    {
-        var newList = new List<string>();
-        bool include = false;
-        // TODO: Add back in proper parsing for non-proxy
-
-        for (int i = 0; i < ftpListing.Count; i++)
-        {
-            if (ftpListing[i].Contains("<PRE>"))
-            {
-                include = true;
-                continue;
-            }
-            if (ftpListing[i].Contains("</PRE>"))
-            {
-                break;
-            }
-
-            if (include)
-            {
-                var fileInfo = FileItem.TryParse(ftpListing[i]);
-                newList.Add(fileInfo.FileName + "|" + fileInfo.FileSize);
-
-                if (fileInfo.FileName.ToLower() == "manifest.txt")
-                {
-                }
-            }
-        }
-
-        return newList;
-    }
-
-    public static List<FileItem> GetManifestFileContents(WebRequest ftpRequest)
-    {
+        string downloadPath = null;
         var ftpListing = new List<FileItem>();
-        ftpRequest.Method = WebRequestMethods.Ftp.DownloadFile;
-        FtpWebResponse response = (FtpWebResponse)ftpRequest.GetResponse();
-        using (Stream responsestream = response.GetResponseStream())
+
+        downloadPath = System.IO.Path.Combine(Path.GetTempPath(), Path.GetTempFileName());
+        var ret = FTPRunner.Run(WebRequestMethods.Ftp.DownloadFile, options, downloadPath);
+
+        if ((ret.ExitCode == 0) && (System.IO.File.Exists(downloadPath)))
         {
-            using (StreamReader reader = new StreamReader(responsestream))
+            using (StreamReader reader = new StreamReader(downloadPath))
             {
                 string _line = reader.ReadLine();
                 while (!string.IsNullOrEmpty(_line))
@@ -511,14 +468,14 @@ public static class Helper
 
                     bool success = long.TryParse(splitLine[1], out length);
 
-                    if(splitLine.Length > 2)
+                    if (splitLine.Length > 2)
                     {
                         version = splitLine[2];
                     }
 
                     fi.Version = version;
-                    
-                    if(success)
+
+                    if (success)
                     {
                         fi.FileSize = length;
                         ftpListing.Add(fi);
