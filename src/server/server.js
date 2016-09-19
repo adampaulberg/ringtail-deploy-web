@@ -285,7 +285,8 @@ function convertToClient(results) {
 
 
 let migrationPath = join(__dirname, '../../migrations');
-let migrationFilePath = join(migrationPath, '/.migrate');
+let migrationDataPath = join(__dirname, '../../data');
+let migrationFilePath = join(migrationDataPath, '/.migrate');
 
 let set = migrate.load(migrationFilePath, migrationPath);
 set.up(function (err) {

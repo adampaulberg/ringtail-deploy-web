@@ -59,7 +59,9 @@ else \
 	&& echo "----NPM PROXY SET----"; \
 fi
 
+RUN npm install node-gyp -g
 RUN npm install bower -g
+# RUN npm install npm@latest -g
 
 #GET CODE
 WORKDIR /home/deployweb

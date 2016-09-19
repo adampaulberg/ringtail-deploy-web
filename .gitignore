@@ -47,3 +47,4 @@ src/client/assets/css/*.css
 daemon
 certs
 .vs/*
+build.sh
