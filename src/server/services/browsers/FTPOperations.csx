@@ -97,7 +97,6 @@ public static class FTPRunner
     private const string process = "java";
     private const string jarFile = "FtpOperations-v0.1.jar";
 
-    Console.WriteLine("in runner");
     public class RunResults
     {
         public int ExitCode;
@@ -109,7 +108,7 @@ public static class FTPRunner
 
     public static RunResults Run(string ftpRequestMethod, Options options, string localFilePath = null)
     {
-
+        Console.WriteLine("in runner");
         RunResults runResults = new RunResults
         {
             Output = new StringBuilder(),
