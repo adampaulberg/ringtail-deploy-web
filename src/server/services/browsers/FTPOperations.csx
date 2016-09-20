@@ -188,7 +188,8 @@ public static class FTPRunner
             Console.WriteLine(e.Message);
             runResults.RunException = e;
         }
-
+        Console.WriteLine("runResults")
+        Console.WriteLine(runResults);
         return runResults;
     }
 
