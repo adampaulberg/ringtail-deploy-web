@@ -28,7 +28,8 @@ public class Startup
     public async Task<object> Invoke(dynamic input)
     {
         Console.WriteLine("in Task");
-        Debugger.Launch();
+        // Debugger.Launch();
+        Console.WriteLine(input.action);
         var typeOfOperation = (string)input.action;
         Console.WriteLine(typeOfOperation);
         if (string.IsNullOrEmpty(typeOfOperation))
