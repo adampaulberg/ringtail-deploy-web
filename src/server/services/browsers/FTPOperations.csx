@@ -27,11 +27,8 @@ public class Startup
     /// <returns></returns>
     public async Task<object> Invoke(dynamic input)
     {
-        Console.WriteLine("in Task");
         // Debugger.Launch();
-        Console.WriteLine(input.action);
         var typeOfOperation = (string)input.action;
-        Console.WriteLine(typeOfOperation);
         if (string.IsNullOrEmpty(typeOfOperation))
         {
             typeOfOperation = "DIRECTORY";
@@ -109,7 +106,6 @@ public static class FTPRunner
 
     public static RunResults Run(string ftpRequestMethod, Options options, string localFilePath = null)
     {
-        Console.WriteLine("in runner");
         RunResults runResults = new RunResults
         {
             Output = new StringBuilder(),
@@ -143,8 +139,6 @@ public static class FTPRunner
                     baseUrlArgs += string.Format("-pu {0} -pup {1} ", options.FtpProxyPort, options.FtpProxyPassword);
                 }
                 
-                Console.WriteLine(baseUrlArgs);
-
                 string args = null;
                 proc.StartInfo.FileName = process;
                 if (ftpRequestMethod == WebRequestMethods.Ftp.ListDirectory)
@@ -159,19 +153,14 @@ public static class FTPRunner
                 {
                     args = string.Format("{0} -sf \"{1}\" {2}", baseArgs, localFilePath, baseUrlArgs);
                 }
-                Console.WriteLine("args");
-                Console.WriteLine(args);
                 proc.StartInfo.Arguments = args;
                 proc.StartInfo.WorkingDirectory = Directory.GetCurrentDirectory();
-                Console.WriteLine(Directory.GetCurrentDirectory());
                 proc.StartInfo.UseShellExecute = false;
                 proc.StartInfo.CreateNoWindow = true;
                 proc.StartInfo.RedirectStandardOutput = true;
                 proc.StartInfo.RedirectStandardError = true;
-                Console.WriteLine("b4");
                 proc.OutputDataReceived += (o, e) => runResults.Output.Append(e.Data).Append(Environment.NewLine);
                 proc.ErrorDataReceived += (o, e) => runResults.Error.Append(e.Data).Append(Environment.NewLine);
-                Console.WriteLine("a5");
 
                 proc.Start();
 
@@ -187,12 +176,9 @@ public static class FTPRunner
         }
         catch (Exception e)
         {
-            Console.WriteLine("error run");
             Console.WriteLine(e.Message);
             runResults.RunException = e;
         }
-        Console.WriteLine("runResults");
-        Console.WriteLine(runResults.Output);
         return runResults;
     }
 
@@ -252,12 +238,13 @@ public static class Helper
                 }
             }
         }
-        catch (System.Exception e) { Console.WriteLine(e.Message); }
+        catch (System.Exception e) { 
+            Console.WriteLine(e.Message); 
+        }
 
         Options options = new Options((string)input.ftpHost, (string)input.ftpUser, (string)input.ftpPassword,
             proxy, proxyport, (string)input.branch, (string)input.currentVersion, (string)input.scriptLocation);
         FtpOptionsCleanup(options);
-        Console.WriteLine(options);
         return options;
     }
 
