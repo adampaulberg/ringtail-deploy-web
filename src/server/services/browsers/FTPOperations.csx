@@ -172,8 +172,6 @@ public static class FTPRunner
                 proc.OutputDataReceived += (o, e) => runResults.Output.Append(e.Data).Append(Environment.NewLine);
                 proc.ErrorDataReceived += (o, e) => runResults.Error.Append(e.Data).Append(Environment.NewLine);
                 Console.WriteLine("a5");
-                Console.WriteLine(proc.OutputDataReceived);
-                Console.WriteLine(proc.ErrorDataReceived);
 
                 proc.Start();
 
@@ -194,7 +192,7 @@ public static class FTPRunner
             runResults.RunException = e;
         }
         Console.WriteLine("runResults");
-        Console.WriteLine(runResults);
+        Console.WriteLine(runResults.Output);
         return runResults;
     }
 

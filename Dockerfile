@@ -38,13 +38,8 @@ RUN apt-get install -y \
 	python2.7 \
 	python \
 	openjdk-7-jdk \
-	curl \
 	libunwind8 \
 	gettext
-
-# RUN curl -sSL -o dotnet.tar.gz https://go.microsoft.com/fwlink/?LinkID=827530
-# RUN mkdir -p /opt/dotnet && tar zxf dotnet.tar.gz -C /opt/dotnet
-# RUN ln -s /opt/dotnet/dotnet /usr/local/bin
 	
 RUN apt-get install -y mono-complete
 ENV PYTHON=/usr/bin/python2.7
