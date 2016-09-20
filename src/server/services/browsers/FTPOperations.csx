@@ -29,6 +29,7 @@ public class Startup
     {
         Debugger.Launch();
         var typeOfOperation = (string)input.action;
+        Console.WriteLine(typeOfOperation);
         if (string.IsNullOrEmpty(typeOfOperation))
         {
             typeOfOperation = "DIRECTORY";
@@ -140,6 +141,8 @@ public static class FTPRunner
                 {
                     baseUrlArgs += string.Format("-pu {0} -pup {1} ", options.FtpProxyPort, options.FtpProxyPassword);
                 }
+                
+                Console.WriteLine(baseUrlArgs);
 
                 string args = null;
                 proc.StartInfo.FileName = process;
@@ -155,6 +158,8 @@ public static class FTPRunner
                 {
                     args = string.Format("{0} -sf \"{1}\" {2}", baseArgs, localFilePath, baseUrlArgs);
                 }
+                
+                Console.WriteLine(args);
                 proc.StartInfo.Arguments = args;
                 proc.StartInfo.WorkingDirectory = Directory.GetCurrentDirectory();
                 proc.StartInfo.UseShellExecute = false;
@@ -179,7 +184,7 @@ public static class FTPRunner
         }
         catch (Exception e)
         {
-
+            Console.WriteLine(e.Message);
             runResults.RunException = e;
         }
 
@@ -242,11 +247,12 @@ public static class Helper
                 }
             }
         }
-        catch (System.Exception) { }
+        catch (System.Exception e) { Console.WriteLine(e.Message); }
 
         Options options = new Options((string)input.ftpHost, (string)input.ftpUser, (string)input.ftpPassword,
             proxy, proxyport, (string)input.branch, (string)input.currentVersion, (string)input.scriptLocation);
         FtpOptionsCleanup(options);
+        Console.WriteLine(options);
         return options;
     }
 
@@ -259,7 +265,7 @@ public static class Helper
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex);
+            Console.WriteLine(ex.Message);
         }
 
         return string.Empty;
@@ -300,7 +306,7 @@ public static class Helper
             result = new List<string>();
             result.Add("Bad");
             okOverall = false;
-            Console.WriteLine(ex);
+            Console.WriteLine(ex.Message);
         }
 
         if (okOverall)
