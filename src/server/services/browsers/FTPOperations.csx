@@ -27,6 +27,7 @@ public class Startup
     /// <returns></returns>
     public async Task<object> Invoke(dynamic input)
     {
+        Console.WriteLine("in Task");
         Debugger.Launch();
         var typeOfOperation = (string)input.action;
         Console.WriteLine(typeOfOperation);
@@ -96,7 +97,7 @@ public static class FTPRunner
     private const string process = "java";
     private const string jarFile = "FtpOperations-v0.1.jar";
 
-
+    Console.WriteLine("in runner");
     public class RunResults
     {
         public int ExitCode;
