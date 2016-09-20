@@ -159,17 +159,21 @@ public static class FTPRunner
                 {
                     args = string.Format("{0} -sf \"{1}\" {2}", baseArgs, localFilePath, baseUrlArgs);
                 }
-                
+                Console.WriteLine("args");
                 Console.WriteLine(args);
                 proc.StartInfo.Arguments = args;
                 proc.StartInfo.WorkingDirectory = Directory.GetCurrentDirectory();
+                Console.WriteLine(Directory.GetCurrentDirectory());
                 proc.StartInfo.UseShellExecute = false;
                 proc.StartInfo.CreateNoWindow = true;
                 proc.StartInfo.RedirectStandardOutput = true;
                 proc.StartInfo.RedirectStandardError = true;
-
+                Console.WriteLine("b4");
                 proc.OutputDataReceived += (o, e) => runResults.Output.Append(e.Data).Append(Environment.NewLine);
                 proc.ErrorDataReceived += (o, e) => runResults.Error.Append(e.Data).Append(Environment.NewLine);
+                Console.WriteLine("a5");
+                Console.WriteLine(proc.OutputDataReceived);
+                Console.WriteLine(proc.ErrorDataReceived);
 
                 proc.Start();
 
@@ -185,10 +189,11 @@ public static class FTPRunner
         }
         catch (Exception e)
         {
+            Console.WriteLine("error run");
             Console.WriteLine(e.Message);
             runResults.RunException = e;
         }
-        Console.WriteLine("runResults")
+        Console.WriteLine("runResults");
         Console.WriteLine(runResults);
         return runResults;
     }
