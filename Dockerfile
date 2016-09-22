@@ -47,8 +47,6 @@ RUN apt-get install -y \
 	oracle-java8-installer \
 	oracle-java8-set-default \
 	mono-complete
-
-	# openjdk-7-jdk \
 		
 ENV PYTHON=/usr/bin/python2.7
 
