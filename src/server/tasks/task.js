@@ -70,7 +70,7 @@ Task.prototype.start = async function start(scope) {
     self.emit('end');
   }
   catch(err) {
-    self.log('Error');
+    self.log('An error has occured.');
     self.endTime = new Date();
     self.status = 'Failed';
     self.err = err;

@@ -6,6 +6,8 @@ var util    = require('util')
   , Task    = require('./task')
   , machineSvc = require('../services/machine-service')
   , configSvc  = require('../services/config-service')
+  , regionSvc  = require('../services/region-service')
+  , envSvc     = require('../services/env-service')
   , sysConfig  = require('../../../config')
   , RingtailClient = require('ringtail-deploy-client')
   ;
@@ -42,8 +44,13 @@ function TaskImpl(options) {
     debug('loading config ' + configId);
     let config = await configSvc.get(configId);
 
+    let regionId = await envSvc.findRegionByEnvId(config.envId);
+
+    let region = await regionSvc.findById(regionId);
+
+    let timeout = (region && region.serviceConfg && region.serviceConfg.timeout) || sysConfig.serviceTimeout || 70000;
     // Create the Ringtail Install Service client
-    let client = me.serviceClient = new RingtailClient({ serviceHost: serviceIP });
+    let client = me.serviceClient = new RingtailClient({ serviceHost: serviceIP, timeout:timeout });
     //log('will use: %s', client.installUrl);
     //log('will use: %s', client.statusUrl);
     //log('will use: %s', client.updateUrl);
@@ -72,6 +79,7 @@ function TaskImpl(options) {
     };
 
     //kind of a bit hacky, but handles quoting to server
+    let error = '';    
     let configData = config.data;
     let configKeys = Object.keys(configData);
     configKeys.forEach(function(key){
@@ -107,13 +115,12 @@ function TaskImpl(options) {
         retry = isTaskEnded(me.rundetails);
       });
     } catch(err) {
-
+      error = err;
     }
 
     // retry loop on failure.
     let maxRetry = sysConfig.retryMax == null ? 0 : sysConfig.retryMax;
     let currentRetry = 1;
-    let error = '';
     if(retry === true) {
       while(retry && currentRetry <= maxRetry) {
 
@@ -138,6 +145,12 @@ function TaskImpl(options) {
           throw error;
         }
       }
+    }
+
+    //if no retries and there's an error
+    if(error) {    
+      log(error);   
+      throw error;
     }
 
     // update machine install notes

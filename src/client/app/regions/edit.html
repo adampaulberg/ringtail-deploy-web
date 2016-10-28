@@ -18,14 +18,18 @@
       <fieldset>
         <legend>Install Service Settings</legend>
         <div class="form-group">
+          <label>Default Timeout</label>
+          <input type="text" class="form-control" ng-model="vm.region.serviceConfig.timeout"></input>
+        </div>
+        <div class="form-group" ng-show="false">
           <label>Service Update UNC Path</label>
           <input type="text" class="form-control" ng-model="vm.region.serviceConfig.updatePath"></input>
         </div>
-        <div class="form-group">
+        <div class="form-group" ng-show="false">
           <label>Service User Account</label>
           <input type="text" class="form-control" ng-model="vm.region.serviceConfig.runasUser"></input>
         </div>
-        <div class="form-group">
+        <div class="form-group" ng-show="false">
           <label>Service User Password</label>
           <input type="password" class="form-control" ng-model="vm.region.serviceConfig.runasPassword"></input>
         </div>
