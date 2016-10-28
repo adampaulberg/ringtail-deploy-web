@@ -2,15 +2,15 @@ var mocha   = require('mocha')
   , sinon   = require('sinon')
   , chai    = require('chai')
   , expect  = chai.expect
-
   , Q               = require('q')
   , RingtailClient  = require('ringtail-deploy-client')
-
   , Env         = require('../../../src/server/models/env')
   , Machine     = require('../../../src/server/models/machine')
   , Task        = require('../../../src/server/tasks/3-install-machine')
   , machineSvc  = require('../../../src/server/services/machine-service')
   , configSvc   = require('../../../src/server/services/config-service')
+  , envSvc      = require('../../../src/server/services/env-service')
+  , regionSvc      = require('../../../src/server/services/region-service')
   ;
 
 describe('3-install-machine', function() {
@@ -23,6 +23,7 @@ describe('3-install-machine', function() {
       , env
       , machine
       , config
+      , region
       , stubGetMachine
       , stubGetConfig
       , stubWaitForService
@@ -61,6 +62,12 @@ describe('3-install-machine', function() {
       roles: ['AGENT']
     };
 
+    region = {
+      regionId: "10",
+      serviceConfig: {},
+      browseConfig: {}
+    }
+
     function returnInstalled() {
       /* jshint es5:false */
       /* jshint ignore:start */
@@ -68,9 +75,15 @@ describe('3-install-machine', function() {
       /* jshint ignore:end */
     }
 
+   
+    
+
     beforeEach(function() {
       log = sinon.spy();
 
+      sinon.stub(regionSvc, 'findById').returns(new Q(region));    
+      sinon.stub(envSvc, 'findRegionByEnvId').returns(new Q(region));   
+      
       stubGetMachine      = sinon.stub(machineSvc, 'get').returns(new Q(machine));
       stubGetConfig       = sinon.stub(configSvc, 'get').returns(new Q(config));
       stubWaitForService  = sinon.stub(RingtailClient.prototype, 'waitForService');
@@ -78,7 +91,7 @@ describe('3-install-machine', function() {
       stubSetConfigs      = sinon.stub(RingtailClient.prototype, 'setConfigs');
       stubInstall         = sinon.stub(RingtailClient.prototype, 'install');
       stubWaitForInstall  = sinon.stub(RingtailClient.prototype, 'waitForInstall');
-      stubInstalled       = sinon.stub(RingtailClient.prototype, 'installed', returnInstalled);
+      stubInstalled       = sinon.stub(RingtailClient.prototype, 'installed', returnInstalled);  
 
       sinon.stub(machineSvc, 'update');
     });
@@ -93,6 +106,9 @@ describe('3-install-machine', function() {
       stubWaitForInstall.restore();
       stubInstalled.restore();
       machineSvc.update.restore();
+      envSvc.findRegionByEnvId.restore();
+      regionSvc.findById.restore();
+      
     });
 
     it('loads the machine', function(done) {
