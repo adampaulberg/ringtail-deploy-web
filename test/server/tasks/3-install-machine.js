@@ -63,10 +63,10 @@ describe('3-install-machine', function() {
     };
 
     region = {
-      regionId: "10",
+      regionId: '10',
       serviceConfig: {},
       browseConfig: {}
-    }
+    };
 
     function returnInstalled() {
       /* jshint es5:false */
