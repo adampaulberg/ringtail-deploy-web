@@ -61,6 +61,21 @@
 
         if(rootTask.tasks) {
           rootTask.tasks.forEach(function(task, idx) {
+            var isWarning = false,
+              title = task.name;
+
+            task.runlog.forEach(function(runlog) {
+              isWarning = isWarning ? true : runlog.data.indexOf('UPGRADE WARNING') >= 0;
+              runlog.status = runlog.data.indexOf('UPGRADE WARNING') >= 0 ? 'Warn' : 'OK';
+            });
+
+            if(isWarning) {
+              task.status = 'Warn';
+              if(rootTask.status === 'Succeeded') { // don't want to make failures look like warnings.
+                rootTask.status = 'Warn';
+              }
+            }
+
             vm.tabs.push({
               title: task.name,
               task: task,

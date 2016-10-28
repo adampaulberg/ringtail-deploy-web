@@ -14,7 +14,7 @@
          ng-click="vm.selectTask(task)">                 
         <span class="nowrap has-glyph">{{$index + 1}}. {{task.name}}</span>          
         <span class="corner-glyph status-glyph {{task.status}}">
-          <span class="glyphicon" ng-class="{ 'glyphicon-time': task.status === 'Pending', 'glyphicon-ok': task.status === 'Succeeded', 'glyphicon-fire': task.status === 'Failed', 'glyphicon-road': task.status === 'Running' }"></span>
+          <span class="glyphicon" ng-class="{ 'glyphicon-time': task.status === 'Pending', 'glyphicon-ok': task.status === 'Succeeded', 'glyphicon-exclamation-sign': tab.task.status === 'Warning', 'glyphicon-fire': task.status === 'Failed', 'glyphicon-road': task.status === 'Running' }"></span>
         </span>        
       </a>
     </div>

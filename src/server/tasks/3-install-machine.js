@@ -147,6 +147,14 @@ function TaskImpl(options) {
       }
     }
 
+    if(isTaskWarning(me.rundetails)) {
+      let messages = extractLogInfoOnWarning(me.rundetails);
+      _.each(messages, function(message) {
+        log(message);
+      });
+      me.Warning = 'Warning';
+    }
+
     //if no retries and there's an error
     if(error) {    
       log(error);   
@@ -161,32 +169,57 @@ function TaskImpl(options) {
     // signal completion for installation
     log('installation complete');
   };
-}
 
-function isTaskEnded(rundetails) {
-  let failed = rundetails.indexOf('UPGRADE FAILED') >= 0,
-    successful = rundetails.indexOf('UPGRADE SUCCESSFUL') >= 0,
-    retry = rundetails.indexOf('UPGRADE RETRY') >= 0;
+  function extractLogInfoOnWarning(rundetails) {
+    let runDetailSplit = rundetails.split('<p>');
+    let messages = [];
+    _.each(runDetailSplit, function(partialRunDetail) {
+      let idx = partialRunDetail.indexOf('UPGRADE WARNING');
+      if(idx >= 0) {
+        let split = partialRunDetail.split('</p>')[0];
+        if(split.length > 0) {
+          messages.push(split);
+        }
+      }
+    });
 
-  return (retry || failed) && !successful;
-}
-
-/**
- * Converts UI logic into additional options
- * Could be refactred into client as a method call
- * to help configure the service
- */
-function getConfigsFromOptions(opts) {
-  var result = {};
-  if(opts) {
-    if(opts.wipeRpfWorkers) {
-      result['Common|FILE_DELETIONS'] = 'C:\\Program Files\\FTI Technology\\Ringtail Processing Framework\\RPF_Supervisor';
-    } else {
-      result['Common|FILE_DELETIONS'] = '';
-    }
+    debug('exiting extractLogInfoOnWarning');
+    return messages;
   }
-  return result;
+
+  function isTaskEnded(rundetails) {
+    let failed = rundetails.indexOf('UPGRADE FAILED') >= 0,
+      successful = rundetails.indexOf('UPGRADE SUCCESSFUL') >= 0,
+      retry = rundetails.indexOf('UPGRADE RETRY') >= 0;
+
+    return (retry || failed) && !successful;
+  }
+
+  function isTaskWarning(rundetails) {
+    let warn = rundetails ? rundetails.indexOf('UPGRADE WARNING') >= 0 : false;
+
+    return warn;
+  }
+
+  /**
+   * Converts UI logic into additional options
+   * Could be refactred into client as a method call
+   * to help configure the service
+   */
+  function getConfigsFromOptions(opts) {
+    var result = {};
+    if(opts) {
+      if(opts.wipeRpfWorkers) {
+        result['Common|FILE_DELETIONS'] = 'C:\\Program Files\\FTI Technology\\Ringtail Processing Framework\\RPF_Supervisor';
+      } else {
+        result['Common|FILE_DELETIONS'] = '';
+      }
+    }
+    return result;
+  }  
 }
+
+
 
 util.inherits(TaskImpl, Task);
 

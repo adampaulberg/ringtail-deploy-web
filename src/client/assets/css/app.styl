@@ -69,7 +69,6 @@ $good-green-color = #2ECC40;
   }
 }
 
-
 .col-centered {
   text-align: center;
 }
@@ -303,12 +302,15 @@ env-redeploy {
       &.status-running, &.status-deployed {
         background-color: rgba(92,184,92,.8);
       }
+      &.status-warning {
+        background-color: #f0ad4e;
+      }
       &.status-suspended {
         background-color: #e0e0e0;
       }
       &.status-unknown {
         background-color: rgba(240,173,78,.8);
-      }
+      }     
       &.status-busy, &.status-deploying {
         background-color: rgba(66,139,202,.8);
       }
@@ -528,6 +530,10 @@ env-redeploy {
   
   &.Running {
     color: #31708f;
+  }
+
+  &.Warn {
+    color: orange;
   }
 }
 

@@ -91,20 +91,6 @@
       ],
     },
     {
-      "roles": ["SKYTAP-WEB", "WEB", "SVC", "SVC-PORTAL", "SKYTAP-ALLINONE"],
-      "configs": [
-        "Ringtail-Svc-Portal|PortalDBServer",
-        "Ringtail-Svc-Portal|PortalDBName",
-        "Ringtail-Svc-Portal|PortalDBUser",
-        "Ringtail-Svc-Portal|PortalDBPassword",
-        "Ringtail-Svc-Portal|RpfDBServer",
-        "Ringtail-Svc-Portal|RpfDBName",
-        "Ringtail-Svc-Portal|RpfDBUser",
-        "Ringtail-Svc-Portal|RpfDBPassword",
-        "Ringtail-Svc-Portal|RpfDBPort"
-      ]
-    },    
-    {
       "roles": ["SKYTAP-AGENT", "SKYTAP-WEBAGENT", "SKYTAP-WEB", "AGENT", "AGT_NATIVE", "WEBAGENT", "WEB", "NOHELP_WEB", "SKYTAP-ALLINONE", "DEV-FULL"],
       "configs": [
         "RingtailConfigurator|CONFIGURATORPORT",
@@ -162,8 +148,21 @@
       "roles": ["SEARCHSERVER", "SKYTAP-AGENT", "AGENT", "SKYTAP-ALLINONE"],
       "configs": [
         "Ringtail-Svc-ContentSearch|SERVICEUSERNAME",
-        "Ringtail-Svc-ContentSearch|SERVICEPASSWORD",
-        "Common|UNINSTALL_EXCLUSIONS"
+        "Ringtail-Svc-ContentSearch|SERVICEPASSWORD"
+      ]
+    },
+    {
+      "roles": ["SKYTAP-WEB", "WEB", "SVC-PORTAL", "SKYTAP-ALLINONE"],
+      "configs": [
+        "Ringtail-Svc-Portal|PortalDBServer",
+        "Ringtail-Svc-Portal|PortalDBName",
+        "Ringtail-Svc-Portal|PortalDBUser",
+        "Ringtail-Svc-Portal|PortalDBPassword",
+        "Ringtail-Svc-Portal|RpfDBServer",
+        "Ringtail-Svc-Portal|RpfDBName",
+        "Ringtail-Svc-Portal|RpfDBUser",
+        "Ringtail-Svc-Portal|RpfDBPassword",
+        "Ringtail-Svc-Portal|RpfDBPort"
       ]
     },    
     {

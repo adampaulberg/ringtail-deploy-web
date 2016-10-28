@@ -38,8 +38,6 @@ describe('Task', function() {
         expect(task.derp).to.equal('derp');
       });
     });
-
-
   });
 
   describe('#validate', function() {
@@ -305,6 +303,90 @@ describe('Task', function() {
 
     });
 
+  });
+
+  describe('#warning', function() {
+        var scope
+      , mock;
+
+    beforeEach(function(){
+      task = new Task();
+      task.execute = function() {};
+      task.Warning = true;
+      scope = {};
+
+      mock = sinon.mock(task);
+      mock
+        .expects('execute')
+        .returns(new Q('I am the result'))
+        .once()
+        .withArgs(scope, task.log);
+    });
+
+    it('sets \'started\' property', function() {
+      task.start(scope);
+      expect(task.started).to.be.a('date');
+    });
+
+    it('sets status to \'Running\'', function() {
+      task.start(scope);
+      expect(task.status).to.equal('Running');
+    });
+
+    it('emits a start event', function(done) {
+      task.on('start', function() {
+        done();
+      });
+      task.start(scope);
+    });
+
+    it('calls execute only once', function(done) {
+      task
+        .start(scope)
+        .then(() => mock.verify())
+        .then(() => done());
+    });
+
+    it('stores execute results on scope', function(done) {
+      task.storeIn = 'resultProp';
+      task
+        .start(scope)
+        .then(function() {
+          expect(scope.resultProp).to.equal('I am the result');
+        })
+        .then(done);
+    });
+
+    describe('when there is a warning', function() {
+      it('sets \'endTime\' property', function(done) {
+        task.Warning = true;
+        task
+          .start(scope)
+          .then(function() {
+            expect(task.endTime).to.be.a('date');
+          })
+          .then(done);
+      });
+
+      it('sets the status to \'Warning\'', function(done) {
+        task
+          .start(scope)
+          .then(function() {
+            expect(task.status).to.equal('Warning');
+          })
+          .then(done);
+      });
+
+      it('emits a \'warning\' event', function(done) {
+        task.on('warning', done);
+        task.start(scope);
+      });
+
+      it('emits an \'end\' event', function(done) {
+        task.on('end', done);
+        task.start(scope);
+      });
+    });
   });
 
   describe('#log', function() {

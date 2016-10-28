@@ -1,4 +1,5 @@
 var events  = require('events')
+  , debug   = require('debug')('deployer-task')
   , util    = require('util')
   , skytap  = require('node-skytap')
   , Q       = require('q')
@@ -63,10 +64,13 @@ Task.prototype.start = async function start(scope) {
       scope[self.storeIn] = result;
     }
 
+    let status = self.Warning ? 'Warning' : 'Succeeded';
+    let emitValue = self.Warning ? 'warning' : 'success';
+
     self.log('task complete');
     self.endTime = new Date();
-    self.status = 'Succeeded';
-    self.emit('success');
+    self.status = status;
+    self.emit(emitValue);
     self.emit('end');
   }
   catch(err) {

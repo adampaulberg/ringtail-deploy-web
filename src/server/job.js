@@ -1,4 +1,4 @@
-var debug       = require('debug')('deployer')
+var debug       = require('debug')('deployer-job')
   , Q           = require('q')
   , envService  = require('./services/env-service');
 
@@ -27,6 +27,7 @@ Job.prototype.start = function start() {
   /* jshint newcap:false */
   let job = this;
   let env = this.env;
+  var me = this;
 
   // initialize the job data
   this.status = 'Pending';
@@ -50,13 +51,17 @@ Job.prototype.start = function start() {
         await task.start(job.rundata);
       }
 
+      let warn = me.discoverWarnings(job.tasks);
+      let status = warn ? 'Warning' : 'Succeeded';
+      let envStatus = warn ? 'warning' : 'deployed';
+
       // mark as complete
-      job.status = 'Succeeded';
+      job.status = status;
       job.stopped = new Date();
 
       // mark environment as deployed
       env.deployedOn = new Date().toUTCString();
-      env.status = 'deployed';
+      env.status = envStatus;
       await envService.update(env);
 
     }
@@ -73,6 +78,26 @@ Job.prototype.start = function start() {
     finally {
       await envService.log(job);
     }
-
   });
+};
+
+Job.prototype.discoverWarnings = function discoverWarnings(tasks) {
+  let warn = false;
+
+  if(tasks) {
+    for(let task of tasks) {
+      if(task.status === 'Warning') {
+        warn = true;
+      }
+      if(task.tasks) {
+        for(let subTask of task.tasks) {
+          if(subTask.status === 'Warning') {
+            warn = true;
+          }
+        }
+      }
+    }
+  }
+
+  return warn;
 };
