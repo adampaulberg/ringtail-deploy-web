@@ -69,6 +69,7 @@ function TaskImpl(options) {
     //kind of a bit hacky, but handles quoting to server
     let configData = config.data;
     let configKeys = Object.keys(configData);
+    let error = '';
     configKeys.forEach(function(key){
       let tempkey = configData[key] || '';
       //uninstall exclusions should not be escape quoted
@@ -128,13 +129,12 @@ function TaskImpl(options) {
         retry = isTaskEnded(me.rundetails);
       });
     } catch(err) {
-
+      error = err;
     }
 
     // retry loop on failure.
     let maxRetry = sysConfig.retryMax == null ? 0 : sysConfig.retryMax;
     let currentRetry = 1;
-    let error = '';
     if(retry === true) {
       while(retry && currentRetry <= maxRetry) {
 
@@ -145,6 +145,10 @@ function TaskImpl(options) {
           await client.waitForInstall(function(status) {
             me.rundetails = status;
             retry = isTaskEnded(me.rundetails);
+
+            if(!retry) {
+              error = '';
+            }
           });
         } catch(err) {
           error = err;
@@ -167,6 +171,11 @@ function TaskImpl(options) {
         log(message);
       });
       me.Warning = 'Warning';
+    }
+
+    if(error) {
+      log(error);
+      throw(error);
     }
 
     // update machine install notes
