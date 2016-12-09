@@ -1,4 +1,4 @@
-var debug           = require('debug')('deployer-envservice')
+let debug           = require('debug')('deployer-envservice')
   , Q               = require('q')
   , Skytap          = require('node-skytap')
   , EnvMapper       = require('../mappers/env-mapper')
@@ -41,7 +41,7 @@ exports.findAll = function list(paging, next) {
 
 
 exports.findByRegion = function findByRegion(regionId, paging, next) {
-  var total;
+  let total;
 
   paging = paging || {};
   paging.pagesize = paging.pagesize || 25;
@@ -80,7 +80,7 @@ exports.findRegionByEnvId = function findRegionByEnvId(envId, next) {
 };
 
 exports.version = function version(envId, next) {
-  var serviceip;
+  let serviceip;
 
   machineMapper
     .findByEnv(envId)
@@ -89,9 +89,9 @@ exports.version = function version(envId, next) {
         configMapper
             .findById(machine.configId)
             .then(function(conf){
-              var roles = conf.roles;
-              var possibleRoles = ['SKYTAP-ALLINONE', 'WEBAGENT', 'DEV-FULL', 'WEB', 'SKYTAP-WEB'];
-              var matchingRole = _.intersection(roles, possibleRoles);
+              let roles = conf.roles;
+              let possibleRoles = ['SKYTAP-ALLINONE', 'WEBAGENT', 'DEV-FULL', 'WEB', 'SKYTAP-WEB'];
+              let matchingRole = _.intersection(roles, possibleRoles);
              
               if(matchingRole.length > 0) {
                 if(!serviceip)  serviceip = machine.intIP;
@@ -101,15 +101,15 @@ exports.version = function version(envId, next) {
               }
           });
       }, function done(){
-        var client = new RingtailClient({ serviceHost: serviceip });
-        var version;
+        let client = new RingtailClient({ serviceHost: serviceip });
+        let version;
 
         client
           .installed()
           .then(function(result){
             if(result && result.length > 0) {
               result.forEach(function(row){
-                var versionMatches = row.match(/Ringtail Version: ([0-9\.].*)/i);
+                let versionMatches = row.match(/Ringtail Version: ([0-9\.].*)/i);
                 if(versionMatches && !version) {
                   version = versionMatches[1];
                 }
@@ -127,7 +127,7 @@ exports.version = function version(envId, next) {
 };
 
 exports.create = function create(data, next) {
-  var env = new Env(data);
+  let env = new Env(data);
   env.envName = '';
 
   return env
@@ -146,7 +146,7 @@ exports.create = function create(data, next) {
 
 exports.update = function update(data, next) {
   debug('update environment');
-  var env = new Env(data);
+  let env = new Env(data);
 
   return env.validate()
     .then(function() { return envMapper.update(env); })
@@ -167,7 +167,7 @@ exports.update = function update(data, next) {
 };
 
 exports.log = function log(job, next) {
-  var data = {
+  let data = {
     jobId: job.id,
     log: JSON.stringify(job)
   };
@@ -183,7 +183,7 @@ exports.remove = function remove(envId, next) {
 };
 
 exports.start = function start(data, suspendOnIdle, next) {
-  var env = new Env(data)
+  let env = new Env(data)
     , opts;
 
   opts = {
@@ -202,7 +202,7 @@ exports.start = function start(data, suspendOnIdle, next) {
 
 
 exports.pause = function pause(data, next) {
-  var env = new Env(data)
+  let env = new Env(data)
     , opts;
 
   opts = {
@@ -219,7 +219,7 @@ exports.pause = function pause(data, next) {
 
 
 exports.reset = function reset(envId, next) {
-  var env;
+  let env;
 
   return envMapper.findById(envId)
     .then(function(found) {
@@ -244,7 +244,7 @@ exports.reset = function reset(envId, next) {
  * @param {Array} envs
  */
 function joinEnvsMachines(envs) {
-  var promises = envs.map(joinEnvMachines);
+  let promises = envs.map(joinEnvMachines);
   return Q.all(promises);
 }
 
@@ -269,7 +269,7 @@ function joinEnvMachines(env) {
  * @param {Array[Env]} envs
  */
 function joinEnvsSkytap(envs) {
-  var promises = envs.map(joinEnvSkytap);
+  let promises = envs.map(joinEnvSkytap);
   return Q.all(promises);
 }
 

@@ -48,11 +48,9 @@
     }
 
     function pollWhileRunning(job) {
-      if(job.status === 'Running') {
         vm.poll = $timeout(function() {
           job.$get(loadJobComplete);
         }, 5000);
-      }
     }
 
     function selectTask(task) {

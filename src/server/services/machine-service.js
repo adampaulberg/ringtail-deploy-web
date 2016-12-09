@@ -3,6 +3,7 @@ let debug         = require('debug')('deployer-machine-service')
   , MachineMapper = require('../mappers/machine-mapper')
   , Machine       = require('../models/machine')
   , dbPath        = __dirname + '/../../../data/deployer.db'
+  , RingtailClient  = require('ringtail-deploy-client')
   , machineMapper = new MachineMapper(dbPath)
   , create
   , update
@@ -70,6 +71,27 @@ exports.createMany = function createMany(envId, data, next) {
 
   return Q.all(promises);
 };
+
+exports.retry = function retry(machine, next) {
+  let serviceIP = machine.intIP;
+  let client = new RingtailClient({ serviceHost: serviceIP });
+
+  return client.retry().nodeify();
+}
+
+exports.restart = function restart(machine, next) {
+  let serviceIP = machine.intIP;
+  let client = new RingtailClient({ serviceHost: serviceIP });
+
+  return client.restart().nodeify();
+}
+
+exports.status = function status(machine, next) {
+  let serviceIP = machine.intIP;
+  let client = new RingtailClient({ serviceHost: serviceIP });
+  
+  return client.status().nodeify();
+}
 
 exports.sync = function sync(envId, oldMachines, newData, next) {
   debug('sync machines');

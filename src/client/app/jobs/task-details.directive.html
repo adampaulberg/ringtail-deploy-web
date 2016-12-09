@@ -6,7 +6,23 @@
       </span>
       {{tab.title}}
     </tab-heading>
-    <p></p>     
+    <p></p>
+
+    <div ng-show="tab.showRestart">
+      <div class='server-control-button' ng-hide='tab.restarting' ng-click="vm.restart(tab)">
+        <span class="glyphicon glyphicon-refresh"></span> Restart
+      </div>  
+      <div class='server-control-button' ng-show='tab.restarting'>
+        Restarting...
+      </div>
+
+      <div class='server-control-button' ng-click="vm.retry(tab)" ng-hide='tab.restarting'>
+        <span class="glyphicon glyphicon-repeat"></span> Retry
+      </div>  
+      <div class='server-control-button grey' ng-show='tab.restarting'>
+        <span class="glyphicon glyphicon-repeat"></span> Retry
+      </div>  
+    </div>
 
     <div class="panel panel-default" ng-show="tab.task.runlogArray && tab.task.status === 'Running'">
       <div class="panel-heading">Most Recent Run Detail</div>
